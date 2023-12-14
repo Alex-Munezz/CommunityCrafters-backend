@@ -15,7 +15,7 @@ class User(db.Model):
 
 
 class Service(db.Model):
-    __tablename__ ='service'
+    __tablename__ ='service'    
     id = db.Column(db.Integer, primary_key=True)
     service_name = db.Column(db.String(120), unique=True, nullable=False)
     service_image = db.Column(db.String(800), unique=True, nullable=False)

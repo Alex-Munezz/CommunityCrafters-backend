@@ -5,19 +5,23 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from models import User, db, Service, Booking, Airbnb
 from datetime import datetime
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 app = Flask(__name__)
 CORS(app)
 
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default_secret_key')
+
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///communitycrafters.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-# db = SQLAlchemy(app)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+jwt = JWTManager(app)
 
 migrate = Migrate(app, db)
 db.init_app(app)
 
 secret_key = os.urandom(32)
 app.secret_key = secret_key
+print(secret_key)
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -30,14 +34,15 @@ def login():
 
     user = User.query.filter_by(username=username).first()
 
-    if user and user.password == password: 
-        # access_token = create_access_token(identity=username)
-        return jsonify({'message': 'Login successful'}), 200
+    if user and user.password == password:
+        # Create JWT token with user ID
+        access_token = create_access_token(identity=str(user.id))
+        return jsonify(access_token=access_token), 200
     else:
         return jsonify({'error': 'Invalid username or password'}), 401
 
-
-@app.route('/users', methods=['POST'])
+# Create account route with JWT
+@app.route('/create_account', methods=['POST'])
 def create_user():
     data = request.json
     new_user = User(**data)
@@ -45,7 +50,10 @@ def create_user():
     try:
         db.session.add(new_user)
         db.session.commit()
-        return jsonify({'message': 'User created successfully'}), 201
+
+        # Create JWT token with user ID
+        access_token = create_access_token(identity=str(new_user.id))
+        return jsonify(access_token=access_token), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
@@ -72,6 +80,30 @@ def get_user(id):
             'phone_number': user.phone_number
         })
     return jsonify({'message': 'User not found'}), 404
+
+@app.route('/user/<string:username>', methods=['GET'])
+# @jwt_re`quired
+def get_user_by_username(username):
+    try:
+        user = User.query.filter_by(username=username).first()
+
+        if user:
+            # Convert user object to dictionary for JSON response
+            user_data = {
+                'id': user.id,
+                'firstname': user.firstname,
+                'lastname': user.lastname,
+                'username': user.username,
+                'email': user.email,
+                'phone_number': user.phone_number, 
+            }
+
+            return jsonify({'user': user_data}), 200
+        else:
+            return jsonify({'error': 'User not found'}), 404
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Update a user by ID
 @app.route('/users/<int:id>', methods=['PUT'])
@@ -187,7 +219,7 @@ def create_booking():
 
     db.session.add(new_booking)
     db.session.commit()
-    return jsonify({'message': 'Booking created successfully'}), 201
+    return jsonify({'message': 'Booking created successfully'}), 200
 
 @app.route('/bookings', methods=['GET'])
 def get_bookings():
@@ -203,6 +235,30 @@ def get_bookings():
             'booking_time': booking.booking_time
         })
     return jsonify({'bookings': booking_list})
+
+@app.route('/booking/<string:username>', methods=['GET'])
+def get_booking_by_username(username):
+    try:
+        booking = Booking.query.filter_by(username=username).first()
+
+        if booking:
+            # Convert user object to dictionary for JSON response
+            user_data = {
+                'id': booking.id,
+                'firstname': booking.username,
+                'service_name': booking.service_name,
+                "booking_date": booking.booking_date,
+                "booking_time": booking.booking_time,
+                'email': booking.email,
+                'phone_number': booking.phone_number, 
+            }
+
+            return jsonify({'booking': user_data}), 200
+        else:
+            return jsonify({'error': 'User not found'}), 404
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/bookings/<int:booking_id>', methods=['PUT'])
 def update_booking(booking_id):
@@ -296,7 +352,7 @@ def delete_airbnb(airbnb_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5555)
+    app.run(debug=True, port=5000)
 
 
 # {
