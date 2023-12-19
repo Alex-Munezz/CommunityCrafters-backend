@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
-from models import User, db, Service, Booking, Airbnb
+from models import User, db, Service, Booking, Airbnb, AirbnbBooking
 from datetime import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
@@ -349,6 +349,89 @@ def delete_airbnb(airbnb_id):
     db.session.commit()
     return jsonify({'message': 'Airbnb deleted successfully'})
 
+@app.route('/airbnbBookings', methods=['POST'])
+def create_airbnb_booking():
+    data = request.json
+    username = data.get('username')
+    email = data.get('email')
+    service_name = data.get('service_name')
+    booking_date = data.get('booking_date')
+    booking_time = data.get('booking_time')
+
+    new_booking = AirbnbBooking(
+        username=username,
+        email=email,
+        service_name=service_name,
+        booking_date=booking_date,
+        booking_time=booking_time
+    )
+
+    try:
+        db.session.add(new_booking)
+        db.session.commit()
+        return jsonify({'message': 'Booking created successfully'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+# Read Operation (Select)
+@app.route('/airbnbBookings', methods=['GET'])
+def get_all_airbnb_bookings():
+    bookings = AirbnbBooking.query.all()
+    bookings_data = [{'id': booking.id, 'username': booking.username, 'email': booking.email,
+                      'service_name': booking.service_name, 'booking_date': booking.booking_date,
+                      'booking_time': booking.booking_time} for booking in bookings]
+    return jsonify({'bookings': bookings_data})
+
+@app.route('/airbnbBookings/<int:booking_id>', methods=['GET'])
+def get_airbnb_booking_by_id(booking_id):
+    booking = AirbnbBooking.query.get(booking_id)
+    if booking:
+        booking_data = {'id': booking.id, 'username': booking.username, 'email': booking.email,
+                        'service_name': booking.service_name, 'booking_date': booking.booking_date,
+                        'booking_time': booking.booking_time}
+        return jsonify({'booking': booking_data})
+    else:
+        return jsonify({'message': 'Booking not found'}), 404
+
+# Update Operation
+@app.route('/airbnbBookings/<int:booking_id>', methods=['PUT'])
+def update_airbnb_booking(booking_id):
+    data = request.json
+    new_booking_date = data.get('booking_date')
+    new_booking_time = data.get('booking_time')
+
+    booking = AirbnbBooking.query.get(booking_id)
+
+    if booking:
+        booking.booking_date = new_booking_date
+        booking.booking_time = new_booking_time
+
+        try:
+            db.session.commit()
+            return jsonify({'message': 'Booking updated successfully'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 400
+    else:
+        return jsonify({'message': 'Booking not found'}), 404
+
+# Delete Operation
+@app.route('/airbnbBookings/<int:booking_id>', methods=['DELETE'])
+def delete_airbnb_booking(booking_id):
+    booking = AirbnbBooking.query.get(booking_id)
+
+    if booking:
+        try:
+            db.session.delete(booking)
+            db.session.commit()
+            return jsonify({'message': 'Booking deleted successfully'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 400
+    else:
+        return jsonify({'message': 'Booking not found'}), 404
+
 
 
 if __name__ == '__main__':
@@ -404,6 +487,99 @@ if __name__ == '__main__':
 #             "service_description": "Our skilled electricians provide safe and reliable electrical services.",
 #             "service_image": "https://us.123rf.com/450wm/bermek/bermek2304/bermek230403255/202409630-power-cord-plugged-into-electrical-outlet-on-insulated-wall-in-hospital-room.jpg?ver=6",
 #             "service_name": "Electrical Services"
+#         }
+#     ]
+# }
+    
+# {
+#     "airbnbs": [
+#         {
+#             "description": "A cozy apartment in the heart of the city",
+#             "id": 1,
+#             "image": "https://kenyahomes.co.ke/blog/wp-content/uploads/2020/01/interior-modern-living-room_123088-11.jpg",
+#             "location": "Downtown",
+#             "name": "Cozy Apartment",
+#             "price": "$100 per night"
+#         },
+#         {
+#             "description": "A cozy apartment in the heart of the Syokimau",
+#             "id": 2,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGdyR_GTTpFqXOhzAYdtK8turtpToyI52spN4xU7j8LQf9wBDqDDZv3vzKnvJBxe3jLd8&usqp=CAU",
+#             "location": "Syokimau",
+#             "name": "Luxore Apartment",
+#             "price": "$50 per night"
+#         },
+#         {
+#             "description": "Escape to this charming cottage nestled in a quiet countryside. Perfect for a romantic getaway with a private garden and scenic views.",
+#             "id": 3,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSEj_07hKbuJ5c8ZR06MYEhJwhFJEmGAP_Kkw&usqp=CAU",
+#             "location": "Kileleshwa",
+#             "name": "Cozy Cottage Retreat",
+#             "price": "$50 per night"
+#         },
+#         {
+#             "description": "Experience city living at its finest in this stylish loft. Located in the heart of downtown, enjoy modern amenities and easy access to local attractions.",
+#             "id": 4,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRp1StBs4YAnkQrJV0FRCg5ETff69plaDMlgA&usqp=CAU",
+#             "location": "Lavington",
+#             "name": "Urban Oasis Loft",
+#             "price": "$50 per night"
+#         },
+#         {
+#             "description": "Unwind in this luxurious seaside villa, offering breathtaking ocean views and direct beach access. Ideal for a family vacation or a peaceful retreat.",
+#             "id": 5,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReDH8WBbPu61FBCmeQWNOZt2soPo3Thq103A&usqp=CAU",
+#             "location": "Lavington",
+#             "name": "Seaside Serenity Villa",
+#             "price": "$90 per night"
+#         },
+#         {
+#             "description": "Embrace the tranquility of nature in this rustic mountain cabin. Surrounded by towering trees, it's an ideal spot for hiking and reconnecting with the outdoors.",
+#             "id": 6,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9gx9V-UFhpQ86Z128BT4P6sn-dVdG61TKZA&usqp=CAU",
+#             "location": "Runda",
+#             "name": "Mountain Haven Cabin",
+#             "price": "$70 per night"
+#         },
+#         {
+#             "description": "Step back in time in this meticulously restored historic mansion. Indulge in the elegance of a bygone era with antique furnishings and classic architecture.",
+#             "id": 7,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTfZAR4MmSVs-bQQdSulFPu6qp60sq5K07VSw&usqp=CAU",
+#             "location": "Jamhuri",
+#             "name": "Historic Elegance Mansion",
+#             "price": "$60 per night"
+#         },
+#         {
+#             "description": "SSoak in panoramic city views from this sleek and modern penthouse. Enjoy the high life with top-notch amenities and proximity to trendy nightlife.",
+#             "id": 8,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTih1UgTjdT57rBFL0vCQ6ythYkq3BWeNWmMg&usqp=CAU",
+#             "location": "Runda",
+#             "name": "Modern Skyline Penthouse",
+#             "price": "$100 per night"
+#         },
+#         {
+#             "description": "Immerse yourself in a tropical paradise with this charming bungalow. Surrounded by lush gardens, it's a perfect hideaway for nature lovers.",
+#             "id": 9,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTiMmuNadV-L8BEl0GextrNhUX1A_YVpnEzJg&usqp=CAU",
+#             "location": "Runda",
+#             "name": "Tropical Paradise Bungalow",
+#             "price": "$50 per night"
+#         },
+#         {
+#             "description": "Hit the slopes and then relax in this cozy ski chalet. Warm up by the fireplace after a day of skiing in this alpine-inspired haven.",
+#             "id": 10,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4mDhmngMCKKowgQGHmGIc-lFT7lOjg1N2zg&usqp=CAU",
+#             "location": "Runda",
+#             "name": "Ski Chalet Retreat",
+#             "price": "$90 per night"
+#         },
+#         {
+#             "description": "Stimulate your creativity in this artsy loft studio. Adorned with unique artwork and filled with natural light, it's an inspiring space for artists and creatives.",
+#             "id": 11,
+#             "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQykx-eqg-tuN-WD7VArOCZM4ynUQ2SgxlfIw&usqp=CAU",
+#             "location": "Runda",
+#             "name": "Artistic Loft Studio",
+#             "price": "$50 per night"
 #         }
 #     ]
 # }
