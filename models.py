@@ -69,6 +69,3 @@ class Payment(db.Model):
     amount = db.Column(db.Float, nullable=False)
     payment_status = db.Column(db.String(20), default='pending')
     payment_date = db.Column(db.Date)
-
-
-

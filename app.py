@@ -35,8 +35,7 @@ def login():
     user = User.query.filter_by(username=username).first()
 
     if user and user.password == password:
-        # Create JWT token with user ID
-        access_token = create_access_token(identity=str(user.id))
+        access_token = create_access_token(identity=str(user.username))
         return jsonify(access_token=access_token), 200
     else:
         return jsonify({'error': 'Invalid username or password'}), 401
@@ -88,7 +87,6 @@ def get_user_by_username(username):
         user = User.query.filter_by(username=username).first()
 
         if user:
-            # Convert user object to dictionary for JSON response
             user_data = {
                 'id': user.id,
                 'firstname': user.firstname,
@@ -224,7 +222,7 @@ def create_booking():
 @app.route('/bookings', methods=['GET'])
 def get_bookings():
     bookings = Booking.query.all()
-    booking_list = []
+    booking_list = []   
     for booking in bookings:
         booking_list.append({
             'id': booking.id,
@@ -242,7 +240,6 @@ def get_booking_by_username(username):
         booking = Booking.query.filter_by(username=username).first()
 
         if booking:
-            # Convert user object to dictionary for JSON response
             user_data = {
                 'id': booking.id,
                 'firstname': booking.username,
